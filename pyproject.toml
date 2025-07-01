@@ -1,7 +1,7 @@
 [project]
 name="Kindle Most Wanted"
 
-version="0.1.0"
+version="0.1.1"
 
 description="a minimal Python script to automatically check price bids for a personal list of Kindle e-books"
 

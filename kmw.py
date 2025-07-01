@@ -1,20 +1,24 @@
+import os
+import sys
 
 from playwright.sync_api import sync_playwright
 import pandas as pd
-import os
 from datetime import datetime
 from plyer import notification
 
+#import webbrowser
+
+
 # Config
-BOOKPRICESCSV_FILE = "csv/booksprices.csv"
-BOOKCSV_FILE = "csv/books.csv"
+BOOKPRICESCSV_FILE = "csv/books_prices"
+BOOKCSV_FILE = "csv/books"
 HTMLREPORT_FILE = "report.html"
 PAGELOAD_TIMEOUT = 6000
 PAGERENDER_TIMEOUT = 500
 
 # Tools
 def load_book_list(csv_path=BOOKCSV_FILE):
-    df = pd.read_csv(csv_path)    
+    df = pd.read_csv(csv_path+".csv")    
     return dict(zip(df["Title"], zip(df["URL"],df["Author"])))
 
 def notify(title, message):
@@ -45,7 +49,7 @@ def generate_html_report(csv_path=BOOKPRICESCSV_FILE, html_path=HTMLREPORT_FILE,
                 price = float(price_str.strip())
                 
             if price == 0.00:
-                return 'style="color: white; background-color: #FCFC00;"'
+                return 'style="color: black; background-color: #FCFC00;"'
             elif price <= 0.99:
                 return 'style="color: black; background-color: #F8F800;"'
             elif price <= 1.99:
@@ -64,7 +68,7 @@ def generate_html_report(csv_path=BOOKPRICESCSV_FILE, html_path=HTMLREPORT_FILE,
     for _, row in df.iterrows():
         price_style = style_price(row["Current Price"])
         author = row["Author"]
-        title = row["Book"]
+        title = row["Title"]
         url = row["URL"]
         price = row["Current Price"]
         rows += f"<tr><td><a href='{url}' target='_blank'>{title}</a></td><td>{author}</td><td {price_style}>{price}</td></tr>\n"
@@ -266,17 +270,25 @@ def generate_html_report(csv_path=BOOKPRICESCSV_FILE, html_path=HTMLREPORT_FILE,
         
 # Program
 def main():
-    # read input CSV
-    BOOK_URLS = load_book_list()
-    # read / create output CSV
-    if os.path.exists(BOOKPRICESCSV_FILE):
-        df = pd.read_csv(BOOKPRICESCSV_FILE)
-    else:
-        df = pd.DataFrame(columns=["Author","Book", "URL", "Previous Price", "Current Price", "Last Checked"])
-    # scan amazon pages to get current price
-    if 0:
-        print("skipped")
-    else:
+    METACMD = ""
+    BOOKCSV = BOOKCSV_FILE
+    if len(sys.argv)>1:
+        BOOKCSV=sys.argv[1].replace(".csv", "").strip()
+    if len(sys.argv)>2:
+        METACMD=sys.argv[2].strip()        
+    BOOKPRICECSV=BOOKCSV+"_prices.csv"
+    BOOKPRICEREPORT=BOOKCSV+"_prices.html"
+
+    if METACMD!="*":        
+        # read input CSV
+        BOOK_URLS = load_book_list(BOOKCSV)
+
+        # read / create output CSV
+        if os.path.exists(BOOKPRICECSV):
+            df = pd.read_csv(BOOKPRICECSV)
+        else:
+            df = pd.DataFrame(columns=["Author","Title", "URL", "Previous Price", "Current Price", "Last Checked"])
+        # scan amazon pages to get current price
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
@@ -287,7 +299,7 @@ def main():
                 page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
                 page.wait_for_timeout(PAGERENDER_TIMEOUT)
                 current_price = get_price(page)
-                prev_row = df[df["Book"] == title]
+                prev_row = df[df["Title"] == title]
                 previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
                 changed = current_price != previous
                 if changed:
@@ -298,7 +310,7 @@ def main():
                     print(f"  = No change: {current_price}")
                 updated.append({
                     "Author": urlauthor[1],
-                    "Book": title,
+                    "Title": title,
                     "URL": urlauthor[0],
                     "Previous Price": previous,
                     "Current Price": current_price,
@@ -307,10 +319,11 @@ def main():
 
             browser.close()
         # write output CSV
-        pd.DataFrame(updated).to_csv(BOOKPRICESCSV_FILE, index=False)
+        pd.DataFrame(updated).to_csv(BOOKPRICECSV, index=False)
     
     # write output HMTL from CSV
-    generate_html_report()
+    generate_html_report(BOOKPRICECSV,BOOKPRICEREPORT)    
+    #webbrowser.open("file://"+BOOKPRICEREPORT) 
 
 if __name__ == "__main__":
     main()
