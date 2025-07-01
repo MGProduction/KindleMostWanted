@@ -45,7 +45,7 @@ def generate_html_report(csv_path=BOOKPRICESCSV_FILE, html_path=HTMLREPORT_FILE,
                 price = float(price_str.strip())
                 
             if price == 0.00:
-                return 'style="color: white; background-color: green;"'
+                return 'style="color: white; background-color: #FCFC00;"'
             elif price <= 0.99:
                 return 'style="color: black; background-color: #F8F800;"'
             elif price <= 1.99:
