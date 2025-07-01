@@ -1,0 +1,21 @@
+[project]
+name="Kindle Most Wanted"
+
+version="0.1.0"
+
+description="a minimal Python script to automatically check price bids for a personal list of Kindle e-books"
+
+dependencies = [
+  "playwright",
+  "pandas",
+  "plyer",
+  "datetime",
+]
+
+authors = [
+  {name = "Marco Giorgini", email = "marco.giorgini@gmail.com"},  
+]
+
+readme = {file = "README.txt", content-type = "text/markdown"}
+
+license = "Unlicence"
