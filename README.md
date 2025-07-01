@@ -21,9 +21,9 @@ Beaton M.C.,Agatha Raisin e la giardiniera invasata,https://www.amazon.it/gp/pro
 Beaton M.C.,Agatha Raisin e i Camminatori di Dembley,https://www.amazon.it/gp/product/B008DYJW2M,"3,99 €","3,99 €",2025-07-01 21:33:25.813621
 ```
 
-[Report](misc/report.jpg)
-
 and a HTML report - with color alerts and active links.
+
+![Report](misc/report.jpg)
 
 ## Dependencies
 
