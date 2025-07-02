@@ -25,6 +25,14 @@ and a HTML report - with color alerts and active links.
 
 ![Report](misc/report.jpg)
 
+## Usage
+
+**kmw.py** (try to read and process csv/books.csv)
+
+or
+
+**kmw.py** <csv file name> (process your specific csv file)
+
 ## Dependencies
 
 **playwright** for page rendering and scraping
