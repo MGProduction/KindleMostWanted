@@ -13,8 +13,8 @@ from plyer import notification
 BOOKPRICESCSV_FILE = "csv/books_prices"
 BOOKCSV_FILE = "csv/books"
 HTMLREPORT_FILE = "report.html"
-PAGELOAD_TIMEOUT = 6000
-PAGERENDER_TIMEOUT = 500
+PAGELOAD_TIMEOUT = 60000
+PAGERENDER_TIMEOUT = 2500
 
 # Tools
 def load_book_list(csv_path=BOOKCSV_FILE):
@@ -298,6 +298,7 @@ def main():
                 print(f"Checking: {title}")
                 page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
                 page.wait_for_timeout(PAGERENDER_TIMEOUT)
+                #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
                 current_price = get_price(page)
                 prev_row = df[df["Title"] == title]
                 previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
@@ -305,7 +306,10 @@ def main():
                 if changed:
                     print(f"  ➜ Price changed: {previous} → {current_price}")
                     if previous!="N/A":
-                        notify(f"Price Drop: {title}", f"{previous} → {current_price}")                
+                        shorttitle=title
+                        if len(shorttitle)>24:
+                            shorttitle=title[:20]+"..."
+                        notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
                 else:
                     print(f"  = No change: {current_price}")
                 updated.append({
