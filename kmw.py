@@ -18,8 +18,12 @@ PAGERENDER_TIMEOUT = 2500
 
 # Tools
 def load_book_list(csv_path=BOOKCSV_FILE):
-    df = pd.read_csv(csv_path+".csv")    
-    return dict(zip(df["Title"], zip(df["URL"],df["Author"])))
+    try:
+      df = pd.read_csv(csv_path+".csv")    
+      return dict(zip(df["Title"], zip(df["URL"],df["Author"])))
+    except:
+      print(f"Can't read {csv_path}.csv file")
+      return None
 
 def notify(title, message):
     notification.notify(
@@ -283,51 +287,55 @@ def main():
         # read input CSV
         BOOK_URLS = load_book_list(BOOKCSV)
 
-        # read / create output CSV
-        if os.path.exists(BOOKPRICECSV):
-            df = pd.read_csv(BOOKPRICECSV)
+        if not BOOK_URLS:
+            print("Usage: kmw.py <book list csv>")
+            print("       with [Author, Title, Url]")
         else:
-            df = pd.DataFrame(columns=["Author","Title", "URL", "Previous Price", "Current Price", "Last Checked"])
-        # scan amazon pages to get current price
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+            # read / create output CSV
+            if os.path.exists(BOOKPRICECSV):
+                df = pd.read_csv(BOOKPRICECSV)
+            else:
+                df = pd.DataFrame(columns=["Author","Title", "URL", "Previous Price", "Current Price", "Last Checked"])
+            # scan amazon pages to get current price
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
 
-            updated = []
-            for title, urlauthor in BOOK_URLS.items():
-                print(f"Checking: {title}")
-                page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
-                page.wait_for_timeout(PAGERENDER_TIMEOUT)
-                #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
-                current_price = get_price(page)
-                prev_row = df[df["Title"] == title]
-                previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
-                changed = current_price != previous
-                if changed:
-                    print(f"  ➜ Price changed: {previous} → {current_price}")
-                    if previous!="N/A":
-                        shorttitle=title
-                        if len(shorttitle)>24:
-                            shorttitle=title[:20]+"..."
-                        notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
-                else:
-                    print(f"  = No change: {current_price}")
-                updated.append({
-                    "Author": urlauthor[1],
-                    "Title": title,
-                    "URL": urlauthor[0],
-                    "Previous Price": previous,
-                    "Current Price": current_price,
-                    "Last Checked": datetime.now()
-                })
+                updated = []
+                for title, urlauthor in BOOK_URLS.items():
+                    print(f"Checking: {title}")
+                    page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
+                    page.wait_for_timeout(PAGERENDER_TIMEOUT)
+                    #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
+                    current_price = get_price(page)
+                    prev_row = df[df["Title"] == title]
+                    previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
+                    changed = current_price != previous
+                    if changed:
+                        print(f"  ➜ Price changed: {previous} → {current_price}")
+                        if previous!="N/A":
+                            shorttitle=title
+                            if len(shorttitle)>24:
+                                shorttitle=title[:20]+"..."
+                            notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
+                    else:
+                        print(f"  = No change: {current_price}")
+                    updated.append({
+                        "Author": urlauthor[1],
+                        "Title": title,
+                        "URL": urlauthor[0],
+                        "Previous Price": previous,
+                        "Current Price": current_price,
+                        "Last Checked": datetime.now()
+                    })
 
-            browser.close()
-        # write output CSV
-        pd.DataFrame(updated).to_csv(BOOKPRICECSV, index=False)
-    
-    # write output HMTL from CSV
-    generate_html_report(BOOKPRICECSV,BOOKPRICEREPORT)    
-    #webbrowser.open("file://"+BOOKPRICEREPORT) 
+                browser.close()
+            # write output CSV
+            pd.DataFrame(updated).to_csv(BOOKPRICECSV, index=False)
+        
+            # write output HMTL from CSV
+            generate_html_report(BOOKPRICECSV,BOOKPRICEREPORT)    
+            #webbrowser.open("file://"+BOOKPRICEREPORT) 
 
 if __name__ == "__main__":
     main()
