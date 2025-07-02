@@ -291,6 +291,7 @@ def main():
             print("Usage: kmw.py <book list csv>")
             print("       with [Author, Title, Url]")
         else:
+            update_count = 0
             # read / create output CSV
             if os.path.exists(BOOKPRICECSV):
                 df = pd.read_csv(BOOKPRICECSV)
@@ -302,40 +303,47 @@ def main():
                 page = browser.new_page()
 
                 updated = []
-                for title, urlauthor in BOOK_URLS.items():
-                    print(f"Checking: {title}")
-                    page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
-                    page.wait_for_timeout(PAGERENDER_TIMEOUT)
-                    #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
-                    current_price = get_price(page)
-                    prev_row = df[df["Title"] == title]
-                    previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
-                    changed = current_price != previous
-                    if changed:
-                        print(f"  ➜ Price changed: {previous} → {current_price}")
-                        if previous!="N/A":
-                            shorttitle=title
-                            if len(shorttitle)>24:
-                                shorttitle=title[:20]+"..."
-                            notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
-                    else:
-                        print(f"  = No change: {current_price}")
-                    updated.append({
-                        "Author": urlauthor[1],
-                        "Title": title,
-                        "URL": urlauthor[0],
-                        "Previous Price": previous,
-                        "Current Price": current_price,
-                        "Last Checked": datetime.now()
-                    })
+                try:
+                  for title, urlauthor in BOOK_URLS.items():
+                      print(f"Checking: {title}")
+                      page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
+                      page.wait_for_timeout(PAGERENDER_TIMEOUT)
+                      #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
+                      current_price = get_price(page)
+                      prev_row = df[df["Title"] == title]
+                      previous = prev_row["Current Price"].values[0] if not prev_row.empty else "N/A"
+                      changed = current_price != previous
+                      if changed:
+                          print(f"  ➜ Price changed: {previous} → {current_price}")
+                          if previous!="N/A":
+                              shorttitle=title
+                              if len(shorttitle)>24:
+                                  shorttitle=title[:20]+"..."
+                              notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
+                      else:
+                          print(f"  = No change: {current_price}")
+                      update_count++
+                      updated.append({
+                          "Author": urlauthor[1],
+                          "Title": title,
+                          "URL": urlauthor[0],
+                          "Previous Price": previous,
+                          "Current Price": current_price,
+                          "Last Checked": datetime.now()
+                      })
+                except:
+                    print("errors in csv file (wrong format?)")
 
                 browser.close()
-            # write output CSV
-            pd.DataFrame(updated).to_csv(BOOKPRICECSV, index=False)
-        
-            # write output HMTL from CSV
-            generate_html_report(BOOKPRICECSV,BOOKPRICEREPORT)    
-            #webbrowser.open("file://"+BOOKPRICEREPORT) 
+            if update_count:
+                # write output CSV
+                pd.DataFrame(updated).to_csv(BOOKPRICECSV, index=False)
+            
+                # write output HMTL from CSV
+                generate_html_report(BOOKPRICECSV,BOOKPRICEREPORT)    
+                #webbrowser.open("file://"+BOOKPRICEREPORT) 
+            else:
+                print("nothing to add/update")
 
 if __name__ == "__main__":
     main()
