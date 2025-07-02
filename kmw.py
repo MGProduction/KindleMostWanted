@@ -20,7 +20,7 @@ PAGERENDER_TIMEOUT = 2500
 def load_book_list(csv_path=BOOKCSV_FILE):
     try:
       df = pd.read_csv(csv_path+".csv")    
-      return dict(zip(df["Title"], zip(df["URL"],df["Author"])))
+      return dict(zip(df["URL"], zip(df["Title"],df["Author"])))
     except:
       print(f"Can't read {csv_path}.csv file")
       return None
@@ -304,9 +304,11 @@ def main():
 
                 updated = []
                 try:
-                  for title, urlauthor in BOOK_URLS.items():
+                  for url, titleauthor in BOOK_URLS.items():
+                      title=titleauthor[0]
+                      author=titleauthor[1]
                       print(f"Checking: {title}")
-                      page.goto(urlauthor[0], timeout=PAGELOAD_TIMEOUT)
+                      page.goto(url, timeout=PAGELOAD_TIMEOUT)
                       page.wait_for_timeout(PAGERENDER_TIMEOUT)
                       #page.wait_for_selector("span.a-color-price", timeout=PAGELOAD_TIMEOUT)                
                       current_price = get_price(page)
@@ -322,11 +324,11 @@ def main():
                               notify(f"Price Drop: {shorttitle}", f"{previous} → {current_price}")                
                       else:
                           print(f"  = No change: {current_price}")
-                      update_count++
+                      update_count=update_count+1
                       updated.append({
-                          "Author": urlauthor[1],
+                          "Author": author,
                           "Title": title,
-                          "URL": urlauthor[0],
+                          "URL": url,
                           "Previous Price": previous,
                           "Current Price": current_price,
                           "Last Checked": datetime.now()
